@@ -48,12 +48,14 @@ namespace IntergalacticWrestlingCore.Helpers
         {
         
                 var moveList = new List<Move>();
-                moveList.Add(new Move { Name = "Clothesline", EnergyUse = 10, Damage = 10, HitThreshold = 50, KnockdownThreshold = 60, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing , State.Gassed } });
-                moveList.Add(new Move { Name = "Chop", EnergyUse = 3, Damage = 5, HitThreshold = 10, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
-                moveList.Add(new Move { Name = "Canadian Destroyer", EnergyUse = 30, Damage = 200, KnockdownThreshold = 999, HitThreshold = 70, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
-                moveList.Add(new Move { Name = "Suplex", EnergyUse = 20, Damage = 50, HitThreshold = 50, KnockdownThreshold = 999, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
-            moveList.Add(new Move { Name = "Stomp", EnergyUse = 3, Damage = 5, HitThreshold = 50, KnockdownThreshold = 999, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.KnockedDown } });
-            moveList.Add(new Move { Name = "Low blow", EnergyUse = 10, Damage = 50, HitThreshold = 50, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
+                moveList.Add(new Move { Name = "Clothesline", CanKnockdown = true, EnergyUse = 10, Damage = 5, HitThreshold = 50, KnockdownResistThreshold = 50, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing , State.Gassed } });
+                moveList.Add(new Move { Name = "Chop", EnergyUse = 3, CanKnockdown = true, Damage = 2, HitThreshold = 10, KnockdownResistThreshold = 4, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
+                moveList.Add(new Move { Name = "Canadian Destroyer", CanKnockdown = true, EnergyUse = 30, Damage = 50, KnockdownResistThreshold = 999, HitThreshold = 70, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
+                moveList.Add(new Move { Name = "Suplex", EnergyUse = 20, CanKnockdown = true, Damage = 10, HitThreshold = 50, KnockdownResistThreshold = 999, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
+                moveList.Add(new Move { Name = "Stomp", EnergyUse = 3, CanKnockdown = false, Damage = 2, HitThreshold = 10, KnockdownResistThreshold = 1, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.KnockedDown } });
+                moveList.Add(new Move { Name = "Low blow", EnergyUse = 10, Damage = 50, HitThreshold = 50, AcceptedStates = new[] { State.Standing }, OpponentStates = new[] { State.Standing, State.Gassed } });
+                moveList.Add(new Move { Name = "Inoki leg kick", EnergyUse = 1, Damage = 1, CanKnockdown = true, KnockdownResistThreshold = 1, HitThreshold = 10, AcceptedStates = new[] { State.KnockedDown }, OpponentStates = new[] { State.Standing, State.Gassed } });
+                moveList.Add(new Move { Name = "Pin", EnergyUse = 1, Damage = 1, CanKnockdown = false, KnockdownResistThreshold = 1, HitThreshold = 1, AcceptedStates = new[] { State.KnockedDown, State.Standing }, OpponentStates = new[] { State.KnockedDown }, ChangeState = State.Pinning , OpponentChangeState = State.Pinned  });
 
             return moveList;
             

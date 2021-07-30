@@ -12,6 +12,7 @@ namespace IntergalacticWrestlingCore.Match.Enums
         TopRope,
         InCorner,
         Gassed,
-        Pinned
+        Pinned,
+        Pinning
     }
 }

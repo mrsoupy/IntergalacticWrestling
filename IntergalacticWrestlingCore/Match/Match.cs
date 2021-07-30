@@ -1,4 +1,5 @@
 ﻿using IntergalacticWrestlingCore.Helpers;
+using IntergalacticWrestlingCore.Moves.Base;
 using IntergalacticWrestlingCore.Wrestler.Base;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,10 @@ namespace IntergalacticWrestlingCore.Match
 
         public string MatchState { get; set; }
 
+        private bool Pin { get; set; }
+
+        private WrestlerState winner { get; set; }
+
         public Match(List<WrestlerState> wrestlers)
         {
             this.MatchLog = new StringBuilder();
@@ -30,7 +35,7 @@ namespace IntergalacticWrestlingCore.Match
 
             foreach (var item in Wrestlers)
             {
-                Console.WriteLine($"{item.Wrestler.Name} : {item.Wrestler.Species.ToString()} Entering");
+                Console.WriteLine($"{item.Wrestler.Name} : {item.Wrestler.Species.Name.ToString()} Entering");
             }
             int counter = 1;
 
@@ -41,82 +46,116 @@ namespace IntergalacticWrestlingCore.Match
 
                 foreach (var wrestler in priorityList)
                 {
-                    Console.WriteLine($"{wrestler.Wrestler.Name} has priority");
-                    if (wrestler.State == Enums.State.Gassed)
+                    var wrestlerString = $"{wrestler.Wrestler.Name} : {wrestler.Wrestler.Species.Name.ToString()}";
+                    var target = Wrestlers.Where(x => x.Team != wrestler.Team).First();
+                    var state = wrestler.State;
+
+                    switch (state)
                     {
-                        Console.WriteLine($"{wrestler.Wrestler.Name} is gassed and recovering");
-                        wrestler.Recover();
-                        wrestler.State = Enums.State.Standing;
+                        case Enums.State.Standing:
+                            ProcessMove(wrestler, target);
+                            break;
+                        case Enums.State.KnockedDown:
+                            if (wrestler.StandUp())
+                            {
+                                Console.WriteLine($"{wrestlerString} has stood back up");
+                            }
+                            break;
+                        case Enums.State.Gassed:
+                            Console.WriteLine($"{wrestlerString} is gassed and recovering");
+                            wrestler.Recover();
+                            break;
+                        case Enums.State.Pinned:
+                            Console.WriteLine($"{wrestlerString} is being pinned!");
+                            int pinCount = wrestler.Pin();
+                            if(pinCount == 3)
+                            {
+                                winner = wrestler.InteractingWrestler;
+                                MatchState = "Finished";
+                            }
+                            else
+                            {
+                                Console.WriteLine($"{wrestlerString} kicked out at {pinCount}");
+                            }
+                            break;
+
                     }
 
 
                     
+                }
 
-                    if (wrestler.State != Enums.State.KnockedDown)
+                System.Threading.Thread.Sleep(2000);
+
+                counter++;
+
+                if (Wrestlers.Any(x => x.Health < 1)){
+                    MatchState = "Finished";
+                    winner = Wrestlers.Where(x => x.Health > 0).First();
+                }
+
+            }
+
+            Console.WriteLine($"{winner.Wrestler.Name} has got the 3 count");
+        }
+
+        private void ProcessMove(WrestlerState wrestler, WrestlerState target, Move reversalMove = null)
+        {
+            var move = SelectMove(wrestler, target);
+            if (reversalMove != null)
+            {
+                move = reversalMove;
+            }
+            if(move != null)
+            {
+                if (wrestler.Hit(move, target))
+                {
+                    if (target.Reversal() && (target.State != Enums.State.Gassed))
                     {
-
-                        var target = Wrestlers.Where(x => x.Team != wrestler.Team).First();
-                        
-                        Console.WriteLine($"{wrestler.Wrestler.Name} is choosing a move");
-                        var move = wrestler.Wrestler.Moves.Where(x => x.EnergyUse < wrestler.Energy && x.AcceptedStates.Contains(wrestler.State) && x.OpponentStates.Contains(target.State)).ToList();
-
-                        if (move.Count() > 0)
-                        {
-                            int selectedMoveIndex = (int)RandomHelpers.GetRoll(move.Count(), 1) - 1;
-                            var selectedMove = move[selectedMoveIndex];
-                            Console.WriteLine($"{selectedMove.Name} target is {target.Wrestler.Name} ");
-
-                            Console.WriteLine($"{wrestler.Wrestler.Name} has chosen {selectedMove.Name}");
-                            
-                            if (wrestler.Hit(selectedMove))
-                            {
-                                Console.WriteLine($"{wrestler.Wrestler.Name} hit {selectedMove.Name} on {target.Wrestler.Name}");
-                                Console.WriteLine("Applying damage");
-                                target.ApplyDamage(wrestler.Damage(selectedMove));
-                                target.Knockdown(selectedMove);
-                                if (target.Health <= 0)
-                                {
-                                    Console.WriteLine($"{wrestler.Wrestler.Name} has won");
-                                    MatchState = "Finished";
-                                    break;
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine($"{wrestler.Wrestler.Name} missed {selectedMove.Name} on {target.Wrestler.Name}. What a jobber!");
-                            }
-
+                        var reversal = SelectMove(target, wrestler);
+                        if (reversal != null) {
+                            Console.WriteLine($"{target.Wrestler.Name} has reversed {move.Name} with {reversal.Name}");
+                            System.Threading.Thread.Sleep(2000);
+                            ProcessMove(target, wrestler, reversal);
                         }
-
-
                         else
                         {
-                            wrestler.State = Enums.State.Gassed;
-                            Console.WriteLine($"{wrestler.Wrestler.Name} is gassed");
+                            Console.WriteLine($"{target.Wrestler.Name} has dodged {move.Name}");
+                            target.State = Enums.State.Gassed;
                         }
                     }
                     else
                     {
-                        wrestler.Recover();
+                        int damage = wrestler.Damage(move);
+
+                        target.ApplyDamage(damage);
+                        Console.WriteLine($"{wrestler.Wrestler.Name} with {move.Name} for {damage} damage");
+                        if (move.CanKnockdown)
+                        {
+                            if (target.Knockdown(move))
+                            {
+                                Console.WriteLine($"{wrestler.Wrestler.Name} has knocked down {target.Wrestler.Name} with {move.Name}");
+                            }
+                        }
+
                     }
-
-                    System.Threading.Thread.Sleep(2000);
                 }
-
-
-
-
-
-                counter++;
-
-
+            }
+            else
+            {
+                wrestler.State = Enums.State.Gassed;
             }
         }
 
-        private void SetState(WrestlerState wrestler)
-        {
-            var w = Wrestlers.Where(x => x.Wrestler.Name == wrestler.Wrestler.Name).First();
-            w = wrestler;
+        private Move SelectMove(WrestlerState wrestler, WrestlerState target) {
+            var moves = wrestler.Wrestler.Moves.Where(x => x.EnergyUse < wrestler.Energy && x.AcceptedStates.Contains(wrestler.State) && x.OpponentStates.Contains(target.State)).ToList();
+            if (moves.Count() > 0)
+            {
+                int selectedMoveIndex = (int)RandomHelpers.GetRoll(moves.Count(), 1) - 1;
+                var selectedMove = moves[selectedMoveIndex];
+                return selectedMove;
+            }
+            return null;
         }
 
     }
